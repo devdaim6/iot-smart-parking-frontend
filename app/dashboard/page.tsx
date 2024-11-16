@@ -1,0 +1,553 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Car,
+  CalendarDays,
+  RefreshCw,
+  User,
+  Key,
+  Clock,
+  LogOut,
+  Info,
+  MapPin,
+  AlertCircle,
+  ParkingSquare,
+  Bookmark,
+  LogOutIcon,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Link from "next/link";
+
+export default function DashboardPage() {
+  const [slots, setSlots] = useState<Array<{
+    _id: string;
+    slotNumber: string;
+    status: string;
+    bookedBy?: {
+      _id?: string;
+    };
+  }>>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [date, setDate] = useState<Date>(new Date());
+  const [startTime, setStartTime] = useState("09:00");
+  const [duration, setDuration] = useState("1");
+  const [isLoading, setIsLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchSlots();
+  }, []);
+
+  const fetchSlots = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("http://localhost:5000/api/slots", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setSlots(data.data.slots);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch parking slots",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const bookSlot = async (slotId: string) => {
+    if (!date) return;
+
+    try {
+      const [hours, minutes] = startTime.split(":");
+      const bookingStart = new Date(date);
+      bookingStart.setHours(parseInt(hours), parseInt(minutes), 0);
+
+      const bookingEnd = new Date(bookingStart);
+      bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
+
+      const res = await fetch("http://localhost:5000/api/slots/book", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          slotNumber: slotId,
+          bookingStart: bookingStart.toISOString(),
+          bookingEnd: bookingEnd.toISOString(),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.status === "success") {
+        toast({
+          title: "Success",
+          description: "Slot booked successfully",
+        });
+        fetchSlots();
+      } else {
+        toast({
+          variant: "destructive", 
+          title: "Error",
+          description: (
+            <>
+              {data.message}. Try{" "}
+              <Link href="#" className="underline" onClick={() => {
+                const slotToRelease = slots.find(
+                  (slot: {
+                    bookedBy?: { _id?: string };
+                    slotNumber: string;
+                  }) => slot.bookedBy?._id === user?._id
+                )?.slotNumber;
+                if (slotToRelease) {
+                  releaseSlot(slotToRelease);
+                }
+              }}>
+                Release Slot
+              </Link>
+            </>
+          ),
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to book slot",
+      });
+    }
+  };
+
+  const releaseSlot = async (slotId: string) => {
+    try {
+      const res = await fetch("http://localhost:5000/api/slots/release", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          slotNumber: slotId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.status === "success") {
+        toast({
+          title: "Success",
+          description: "Slot released successfully",
+        });
+        fetchSlots();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (
+          <>
+            Failed to release slot. Try{" "}
+            <Link href="#" className="underline" onClick={() => releaseSlot(slotId)}>
+              releasing again
+            </Link>
+          </>
+        ),
+      });
+    }
+  };
+
+  const getSlotIcon = (status: string) => {
+    switch (status) {
+      case "available":
+        return <Car className="h-16 w-16 text-green-500 animate-pulse" />;
+      case "occupied":
+        return <Bookmark className="h-16 w-16 text-blue-500 animate-bounce" />;
+      case "parked":
+        return (
+          <div className="relative w-32 h-32 group perspective-1000">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl shadow-lg transform transition-all duration-300 group-hover:shadow-2xl" />
+            
+            {/* Parked Sign */}
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
+              <div className="bg-blue-600 text-white px-4 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
+                <ParkingSquare className="h-4 w-4" />
+                <span className="text-sm font-semibold">Parked</span>
+              </div>
+            </div>
+
+            {/* Car Container */}
+            <div className="absolute inset-2 flex items-center justify-center">
+              <div className="relative">
+                <Car className="h-20 w-20 text-blue-600 drop-shadow-lg transform transition-all duration-300 group-hover:scale-105" />
+                <div className="absolute -bottom-2 inset-x-0 h-4 bg-black/10 blur-sm rounded-full transform scale-75" />
+              </div>
+            </div>
+
+            {/* Parking Lines */}
+            <div className="absolute bottom-3 inset-x-4">
+              <div className="flex justify-between gap-2">
+                <div className="h-1 w-8 bg-yellow-400 rounded-full shadow-sm" />
+                <div className="h-1 w-8 bg-yellow-400 rounded-full shadow-sm" />
+              </div>
+            </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute inset-0 border-2 border-blue-200 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-slate-200/50 to-transparent rounded-b-xl" />
+          </div>
+        );
+      default:
+        return <Car className="h-16 w-16" />;
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-8">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your parking reservations and view available slots
+            </p>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={logout}>
+                  <LogOutIcon
+                    className={`mr-2 h-4 w-4 text-red-700 ${
+                      isLoading ? "animate-spin" : ""
+                    }`}
+                  />
+                  Logout
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Logout from Smart Parking System</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        <Separator className="my-6" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <User className="h-6 w-6" />
+                Your Profile
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-muted-foreground">Username:</span>
+                <span className="font-medium">{user?.username}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-muted-foreground">Vehicle:</span>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Car className="h-3 w-3" />
+                  {user?.vehicleNumber}
+                </Badge>
+              </div>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Keep your vehicle information up to date for seamless parking
+                  management
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <CalendarDays className="h-6 w-6" />
+                Current Booking
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {slots.find(
+                (slot: { bookedBy?: { _id?: string }; slotNumber: string }) =>
+                  slot.bookedBy?._id === user?._id
+              ) ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-muted-foreground">Slot Number:</span>
+                    <Badge className="animate-pulse">
+                      {
+                        slots.find(
+                          (slot: {
+                            bookedBy?: { _id?: string }; 
+                            slotNumber: string;
+                          }) => slot.bookedBy?._id === user?._id
+                        )?.slotNumber
+                      }
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      P{
+                        slots.find(
+                          (slot: {
+                            bookedBy?: { _id?: string };
+                            slotNumber: string;
+                          }) => slot.bookedBy?._id === user?._id
+                        )?.slotNumber
+                      }
+                    </span>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    className="w-full hover:bg-red-600 transition-colors"
+                    onClick={() => {
+                      const slotToRelease = slots.find(
+                        (slot: {
+                          bookedBy?: { _id?: string };
+                          slotNumber: string;
+                        }) => slot.bookedBy?._id === user?._id
+                      )?.slotNumber;
+                      
+                      if (slotToRelease) {
+                        releaseSlot(slotToRelease);
+                      }
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Release Slot
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center p-6 space-y-4">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <div className="text-muted-foreground">
+                    No active bookings
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Book a parking slot from the available slots below
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-semibold tracking-tight flex items-center gap-2">
+              <Key className="h-8 w-8" />
+              Available Parking Slots
+            </h2>
+            <Badge variant="outline" className="text-sm">
+              {slots.filter((slot: any) => slot.status === "available").length}{" "}
+              slots available
+            </Badge>
+          </div>
+
+          <ScrollArea className="h-[600px] rounded-lg border">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 p-6">
+                {slots.map((slot: any) => (
+                  <Card
+                    key={slot._id}
+                    className={`shadow-md hover:shadow-lg transition-all duration-300 ${
+                      slot.status === "available"
+                        ? "hover:border-green-500"
+                        : ""
+                    }`}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          {getSlotIcon(slot.status)}
+                          <div>
+                            <div>Slot {slot.slotNumber}</div>
+                            <Badge
+                              variant={
+                                slot.status === "available"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className={
+                                slot.status === "available" ? "animate-pulse" : ""
+                              }
+                            >
+                              {slot.status === "occupied"
+                                ? "Booked"
+                                : slot.status}
+                            </Badge>
+                          </div>
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {slot.status === "available" && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              className="w-full hover:bg-green-600 transition-colors"
+                              variant="default"
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              <CalendarDays className="mr-2 h-4 w-4" />
+                              Book Slot
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle className="text-2xl flex items-center gap-2">
+                                <Car className="h-6 w-6" />
+                                Book Parking Slot {slot.slotNumber}
+                              </DialogTitle>
+                              <DialogDescription>
+                                Select your preferred date and time for parking
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-6 py-4">
+                              <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={(date) => setDate(date as Date)}
+                                className="rounded-md border mx-auto"
+                                disabled={(date) => date < new Date()}
+                              />
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                  <Clock className="h-5 w-5" />
+                                  <Select
+                                    value={startTime}
+                                    onValueChange={setStartTime}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Start Time" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from(
+                                        { length: 24 },
+                                        (_, i) =>
+                                          `${i.toString().padStart(2, "0")}:00`
+                                      ).map((time) => (
+                                        <SelectItem key={time} value={time}>
+                                          {time}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Select
+                                    value={duration}
+                                    onValueChange={setDuration}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Duration" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[1, 2, 3, 4, 6, 8, 12, 24].map(
+                                        (hours) => (
+                                          <SelectItem
+                                            key={hours}
+                                            value={hours.toString()}
+                                          >
+                                            {hours}{" "}
+                                            {hours === 1 ? "hour" : "hours"}
+                                          </SelectItem>
+                                        )
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Alert>
+                                  <Info className="h-4 w-4" />
+                                  <AlertDescription>
+                                    Booking will start from {startTime} for{" "}
+                                    {duration} hour(s)
+                                  </AlertDescription>
+                                </Alert>
+                                <Button
+                                  className="w-full"
+                                  size="lg"
+                                  onClick={() => bookSlot(slot.slotNumber)}
+                                >
+                                  <CalendarDays className="mr-2 h-4 w-4" />
+                                  Confirm Booking
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {slot.status === "occupied" && slot.bookedBy && (
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-muted-foreground">
+                              Booked by:
+                            </span>
+                            <span className="font-medium">
+                              {slot.bookedBy.username}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-muted-foreground">
+                              Vehicle:
+                            </span>
+                            <Badge variant="outline" className="animate-pulse">
+                              {slot.bookedBy.vehicleNumber}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      </div>
+    </div>
+  );
+}
