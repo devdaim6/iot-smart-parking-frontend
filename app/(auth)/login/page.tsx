@@ -17,13 +17,18 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Car, Lock, User } from 'lucide-react';
 
+interface LoginFormData {
+  username: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
       await login(data.username, data.password);
@@ -31,11 +36,12 @@ export default function LoginPage() {
         title: "Welcome Back",
         description: "Successfully logged into Smart Parking System",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Please check your credentials and try again";
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: error.message || "Please check your credentials and try again",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

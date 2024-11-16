@@ -48,22 +48,26 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 
+interface Slot {
+  _id: string;
+  slotNumber: string;
+  status: string;
+  bookedBy?: {
+    _id?: string;
+    username?: string;
+    vehicleNumber?: string;
+  };
+}
+
 export default function DashboardPage() {
-  const [slots, setSlots] = useState<Array<{
-    _id: string;
-    slotNumber: string;
-    status: string;
-    bookedBy?: {
-      _id?: string;
-    };
-  }>>([]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [slots, setSlots] = useState<Slot[]>([]);
   const [date, setDate] = useState<Date>(new Date());
   const [startTime, setStartTime] = useState("09:00");
   const [duration, setDuration] = useState("1");
   const [isLoading, setIsLoading] = useState(true);
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
   useEffect(() => {
     fetchSlots();
@@ -71,6 +75,7 @@ export default function DashboardPage() {
 
   const fetchSlots = async () => {
     try {
+    console.log(selectedSlot?.slotNumber);
       setIsLoading(true);
       const res = await fetch("http://localhost:5000/api/slots", {
         headers: {
@@ -81,7 +86,7 @@ export default function DashboardPage() {
       if (data.status === "success") {
         setSlots(data.data.slots);
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -125,29 +130,30 @@ export default function DashboardPage() {
         fetchSlots();
       } else {
         toast({
-          variant: "destructive", 
+          variant: "destructive",
           title: "Error",
           description: (
             <>
               {data.message}. Try{" "}
-              <Link href="#" className="underline" onClick={() => {
-                const slotToRelease = slots.find(
-                  (slot: {
-                    bookedBy?: { _id?: string };
-                    slotNumber: string;
-                  }) => slot.bookedBy?._id === user?._id
-                )?.slotNumber;
-                if (slotToRelease) {
-                  releaseSlot(slotToRelease);
-                }
-              }}>
+              <Link
+                href="#"
+                className="underline"
+                onClick={() => {
+                  const slotToRelease = slots.find(
+                    (slot) => slot.bookedBy?._id === user?._id
+                  )?.slotNumber;
+                  if (slotToRelease) {
+                    releaseSlot(slotToRelease);
+                  }
+                }}
+              >
                 Release Slot
               </Link>
             </>
           ),
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -177,14 +183,18 @@ export default function DashboardPage() {
         });
         fetchSlots();
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
         description: (
           <>
             Failed to release slot. Try{" "}
-            <Link href="#" className="underline" onClick={() => releaseSlot(slotId)}>
+            <Link
+              href="#"
+              className="underline"
+              onClick={() => releaseSlot(slotId)}
+            >
               releasing again
             </Link>
           </>
@@ -203,7 +213,7 @@ export default function DashboardPage() {
         return (
           <div className="relative w-32 h-32 group perspective-1000">
             <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl shadow-lg transform transition-all duration-300 group-hover:shadow-2xl" />
-            
+
             {/* Parked Sign */}
             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
               <div className="bg-blue-600 text-white px-4 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
@@ -237,6 +247,8 @@ export default function DashboardPage() {
         return <Car className="h-16 w-16" />;
     }
   };
+
+ 
 
   return (
     <div className="container mx-auto p-8">
@@ -318,7 +330,7 @@ export default function DashboardPage() {
                       {
                         slots.find(
                           (slot: {
-                            bookedBy?: { _id?: string }; 
+                            bookedBy?: { _id?: string };
                             slotNumber: string;
                           }) => slot.bookedBy?._id === user?._id
                         )?.slotNumber
@@ -328,7 +340,8 @@ export default function DashboardPage() {
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      P{
+                      P
+                      {
                         slots.find(
                           (slot: {
                             bookedBy?: { _id?: string };
@@ -348,7 +361,7 @@ export default function DashboardPage() {
                           slotNumber: string;
                         }) => slot.bookedBy?._id === user?._id
                       )?.slotNumber;
-                      
+
                       if (slotToRelease) {
                         releaseSlot(slotToRelease);
                       }
@@ -380,7 +393,11 @@ export default function DashboardPage() {
               Available Parking Slots
             </h2>
             <Badge variant="outline" className="text-sm">
-              {slots.filter((slot: any) => slot.status === "available").length}{" "}
+              {
+                slots.filter(
+                  (slot: { status: string }) => slot.status === "available"
+                ).length
+              }{" "}
               slots available
             </Badge>
           </div>
@@ -392,7 +409,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 p-6">
-                {slots.map((slot: any) => (
+                {slots.map((slot: Slot) => (
                   <Card
                     key={slot._id}
                     className={`shadow-md hover:shadow-lg transition-all duration-300 ${
@@ -414,7 +431,9 @@ export default function DashboardPage() {
                                   : "secondary"
                               }
                               className={
-                                slot.status === "available" ? "animate-pulse" : ""
+                                slot.status === "available"
+                                  ? "animate-pulse"
+                                  : ""
                               }
                             >
                               {slot.status === "occupied"

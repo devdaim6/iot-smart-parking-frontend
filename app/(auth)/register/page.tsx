@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
@@ -41,7 +40,6 @@ const registerSchema = z
   });
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
@@ -64,7 +62,7 @@ export default function RegisterPage() {
         title: "Success",
         description: "Registration successful! Please login.",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         variant: "destructive",
         title: "Error",
