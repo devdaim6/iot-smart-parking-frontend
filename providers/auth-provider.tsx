@@ -30,7 +30,7 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch("http://100.118.221.68:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -58,7 +58,7 @@ export default function AuthProvider({
     vehicleNumber: string,
   ) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch("http://100.118.221.68:5000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

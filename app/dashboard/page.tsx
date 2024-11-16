@@ -77,7 +77,7 @@ export default function DashboardPage() {
     try {
     console.log(selectedSlot?.slotNumber);
       setIsLoading(true);
-      const res = await fetch("http://localhost:5000/api/slots", {
+      const res = await fetch("http://100.118.221.68:5000/api/slots", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -108,7 +108,7 @@ export default function DashboardPage() {
       const bookingEnd = new Date(bookingStart);
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
-      const res = await fetch("http://localhost:5000/api/slots/book", {
+      const res = await fetch("http://100.118.221.68:5000/api/slots/book", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,7 +164,7 @@ export default function DashboardPage() {
 
   const releaseSlot = async (slotId: string) => {
     try {
-      const res = await fetch("http://localhost:5000/api/slots/release", {
+      const res = await fetch("http://100.118.221.68:5000/api/slots/release", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
