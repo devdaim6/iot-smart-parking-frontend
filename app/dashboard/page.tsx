@@ -80,6 +80,9 @@ export default function DashboardPage() {
       const res = await fetch("http://100.118.221.68:5000/api/slots", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
         },
       });
       const data = await res.json();
@@ -88,7 +91,7 @@ export default function DashboardPage() {
       }
     } catch {
       toast({
-        variant: "destructive",
+        variant: "destructive", 
         title: "Error",
         description: "Failed to fetch parking slots",
       });
@@ -113,6 +116,9 @@ export default function DashboardPage() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
           slotNumber: slotId,
@@ -124,7 +130,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.status === "success") {
         toast({
-          title: "Success",
+          title: "Success", 
           description: "Slot booked successfully",
         });
         fetchSlots();
@@ -169,6 +175,9 @@ export default function DashboardPage() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
           slotNumber: slotId,

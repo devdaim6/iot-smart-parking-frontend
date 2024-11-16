@@ -27,13 +27,19 @@ export default function AuthProvider({
     }
     setIsLoading(false);
   }, []);
-
+  
   const login = async (username: string, password: string) => {
     try {
       const res = await fetch("http://100.118.221.68:5000/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", 
+          "Access-Control-Allow-Headers": "*"
+        },
         body: JSON.stringify({ username, password }),
+        credentials: 'include'
       });
       const data = await res.json();
 
@@ -60,7 +66,13 @@ export default function AuthProvider({
     try {
       const res = await fetch("http://100.118.221.68:5000/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
+        },
+        credentials: 'include',
         body: JSON.stringify({
           username,
           password,
