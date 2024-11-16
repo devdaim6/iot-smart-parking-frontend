@@ -62,11 +62,11 @@ export default function RegisterPage() {
         title: "Success",
         description: "Registration successful! Please login.",
       });
-    } catch (error: Error) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Something went wrong"
       });
     } finally {
       setIsLoading(false);
