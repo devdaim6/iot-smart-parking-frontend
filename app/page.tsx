@@ -1,13 +1,7 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Car, ArrowRight } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 
 export default function Home() {
   return (
