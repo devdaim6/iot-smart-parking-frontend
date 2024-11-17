@@ -35,7 +35,7 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      const res = await fetch("http://4.240.103.179:5000/api/auth/login", {
+      const res = await fetch("https://api.mukarramah.in/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export default function AuthProvider({
     vehicleNumber: string
   ) => {
     try {
-      const res = await fetch("http://4.240.103.179:5000/api/auth/register", {
+      const res = await fetch("https://api.mukarramah.in/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
