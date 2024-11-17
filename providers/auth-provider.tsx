@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 export const AuthContext = createContext<{
   user: any;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string, mobile: string, vehicleNumber: string) => Promise<void>;
+  register: (
+    username: string,
+    password: string,
+    mobile: string,
+    vehicleNumber: string
+  ) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 } | null>(null);
@@ -27,19 +32,15 @@ export default function AuthProvider({
     }
     setIsLoading(false);
   }, []);
-  
+
   const login = async (username: string, password: string) => {
     try {
-      const res = await fetch("http://100.118.221.68:5000/api/auth/login", {
+      const res = await fetch("http://4.240.103.179:80/api/auth/login", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", 
-          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include'
       });
       const data = await res.json();
 
@@ -61,18 +62,15 @@ export default function AuthProvider({
     username: string,
     password: string,
     mobile: string,
-    vehicleNumber: string,
+    vehicleNumber: string
   ) => {
     try {
-      const res = await fetch("http://100.118.221.68:5000/api/auth/register", {
+      const res = await fetch("http://4.240.103.179:80/api/auth/register", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
         },
-        credentials: 'include',
+
         body: JSON.stringify({
           username,
           password,
@@ -99,6 +97,7 @@ export default function AuthProvider({
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    document.cookie = "token=; path=/; max-age=0";
     setUser(null);
     router.push("/login");
   };

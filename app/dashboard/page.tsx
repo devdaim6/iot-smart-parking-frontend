@@ -31,6 +31,7 @@ import {
   ParkingSquare,
   Bookmark,
   LogOutIcon,
+  PhoneCallIcon,
 } from "lucide-react";
 import {
   Select,
@@ -56,7 +57,10 @@ interface Slot {
     _id?: string;
     username?: string;
     vehicleNumber?: string;
+    mobile?: string;
   };
+  bookingStart?: string;
+  bookingEnd?: string;
 }
 
 export default function DashboardPage() {
@@ -77,12 +81,9 @@ export default function DashboardPage() {
     try {
     console.log(selectedSlot?.slotNumber);
       setIsLoading(true);
-      const res = await fetch("http://100.118.221.68:5000/api/slots", {
+      const res = await fetch("http://4.240.103.179:80/api/slots", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
         },
       });
       const data = await res.json();
@@ -111,14 +112,11 @@ export default function DashboardPage() {
       const bookingEnd = new Date(bookingStart);
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
-      const res = await fetch("http://100.118.221.68:5000/api/slots/book", {
+      const res = await fetch("http://4.240.103.179:80/api/slots/book", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
           slotNumber: slotId,
@@ -170,14 +168,11 @@ export default function DashboardPage() {
 
   const releaseSlot = async (slotId: string) => {
     try {
-      const res = await fetch("http://100.118.221.68:5000/api/slots/release", {
+      const res = await fetch("http://4.240.103.179:80/api/slots/release", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
         },
         body: JSON.stringify({
           slotNumber: slotId,
@@ -413,37 +408,39 @@ export default function DashboardPage() {
 
           <ScrollArea className="h-[600px] rounded-lg border">
             {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center h-full p-12">
+                <RefreshCw className="h-12 w-12 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                 {slots.map((slot: Slot) => (
                   <Card
                     key={slot._id}
-                    className={`shadow-md hover:shadow-lg transition-all duration-300 ${
+                    className={`shadow-lg hover:shadow-xl transition-all duration-300 ${
                       slot.status === "available"
-                        ? "hover:border-green-500"
-                        : ""
+                        ? "hover:border-green-500 hover:scale-105"
+                        : "hover:scale-102"
                     }`}
                   >
-                    <CardHeader>
+                    <CardHeader className="pb-2">
                       <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          {getSlotIcon(slot.status)}
-                          <div>
-                            <div>Slot {slot.slotNumber}</div>
+                        <span className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-slate-50">
+                            {getSlotIcon(slot.status)}
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-xl font-bold">Slot {slot.slotNumber}</div>
                             <Badge
                               variant={
                                 slot.status === "available"
                                   ? "default"
                                   : "secondary"
                               }
-                              className={
-                                slot.status === "available"
-                                  ? "animate-pulse"
-                                  : ""
-                              }
+                              className={`
+                                ${slot.status === "available" ? "bg-green-500/10 text-green-700 hover:bg-green-500/20" : ""}
+                                ${slot.status === "occupied" ? "bg-blue-500/10 text-blue-700" : ""}
+                                font-medium
+                              `}
                             >
                               {slot.status === "occupied"
                                 ? "Booked"
@@ -453,16 +450,17 @@ export default function DashboardPage() {
                         </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+
+                    <CardContent className="pt-4">
                       {slot.status === "available" && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
-                              className="w-full hover:bg-green-600 transition-colors"
+                              className="w-full bg-green-600 hover:bg-green-700 transition-colors"
                               variant="default"
                               onClick={() => setSelectedSlot(slot)}
                             >
-                              <CalendarDays className="mr-2 h-4 w-4" />
+                              <CalendarDays className="mr-2 h-5 w-5" />
                               Book Slot
                             </Button>
                           </DialogTrigger>
@@ -528,15 +526,15 @@ export default function DashboardPage() {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                <Alert>
-                                  <Info className="h-4 w-4" />
+                                <Alert className="bg-blue-50">
+                                  <Info className="h-4 w-4 text-blue-600" />
                                   <AlertDescription>
                                     Booking will start from {startTime} for{" "}
                                     {duration} hour(s)
                                   </AlertDescription>
                                 </Alert>
                                 <Button
-                                  className="w-full"
+                                  className="w-full bg-green-600 hover:bg-green-700"
                                   size="lg"
                                   onClick={() => bookSlot(slot.slotNumber)}
                                 >
@@ -549,9 +547,16 @@ export default function DashboardPage() {
                         </Dialog>
                       )}
                       {slot.status === "occupied" && slot.bookedBy && (
-                        <div className="space-y-2">
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
+                          {slot.bookingStart && slot.bookingEnd && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {new Date(slot.bookingStart).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()} - {new Date(slot.bookingEnd).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}
+                            </div>
+                          )}
                           <div className="flex items-center space-x-2">
-                            <span className="text-muted-foreground">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
                               Booked by:
                             </span>
                             <span className="font-medium">
@@ -559,12 +564,25 @@ export default function DashboardPage() {
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <span className="text-muted-foreground">
+                            <Car className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
                               Vehicle:
                             </span>
-                            <Badge variant="outline" className="animate-pulse">
+                            <Badge variant="outline" className="bg-white">
                               {slot.bookedBy.vehicleNumber}
                             </Badge>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <PhoneCallIcon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              Mobile:
+                            </span>
+                            <a 
+                              href={`tel:${slot.bookedBy.mobile}`}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                            >
+                              {slot.bookedBy.mobile}
+                            </a>
                           </div>
                         </div>
                       )}
