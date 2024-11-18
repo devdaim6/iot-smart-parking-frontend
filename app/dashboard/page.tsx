@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchSlots();
-
+    console.log(selectedSlot);
     // Connect to the MQTT broker
     const client = mqtt.connect(`mqtt://88dd76a106024c568b26de1aa2c0926c.s1.eu.hivemq.cloud:8883`, {
       username: "mqtt",
