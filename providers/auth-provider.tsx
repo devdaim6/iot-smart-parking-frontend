@@ -35,13 +35,16 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      const res = await fetch("https://api.mukarramah.in/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username, password }),
+        }
+      );
       const data = await res.json();
 
       if (data.status === "success") {
@@ -65,19 +68,22 @@ export default function AuthProvider({
     vehicleNumber: string
   ) => {
     try {
-      const res = await fetch("https://api.mukarramah.in/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-        body: JSON.stringify({
-          username,
-          password,
-          mobile,
-          vehicleNumber,
-        }),
-      });
+          body: JSON.stringify({
+            username,
+            password,
+            mobile,
+            vehicleNumber,
+          }),
+        }
+      );
       const data = await res.json();
 
       if (data.status === "success") {
