@@ -36,7 +36,7 @@ export default function AuthProvider({
   const login = async (username: string, password: string) => {
     try {
       // Ensure API URL is defined before making request
-      if (!process.env.NEXT_PUBLIC_API_URL) {
+      if (!process.env.API_URL) {
         throw new Error("API URL is not configured");
       }
 
