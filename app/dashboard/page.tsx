@@ -145,7 +145,7 @@ export default function DashboardPage() {
   const fetchSlots = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${process.env.API_URL}/api/slots`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
-      const res = await fetch(`${process.env.API_URL}/api/slots/book`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots/book`, {
         method: "POST",
 
         headers: {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
 
   const releaseSlot = async (slotId: string) => {
     try {
-      const res = await fetch(`${process.env.API_URL}/api/slots/release`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots/release`, {
         method: "POST",
 
         headers: {

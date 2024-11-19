@@ -35,12 +35,12 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      // Ensure API URL is defined before making request
-      if (!process.env.API_URL) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
         throw new Error("API URL is not configured");
       }
 
-      const res = await fetch(`${process.env.API_URL}/api/auth/login`, {
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +70,7 @@ export default function AuthProvider({
     vehicleNumber: string
   ) => {
     try {
-      const res = await fetch(`${process.env.API_URL}/api/auth/register`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
