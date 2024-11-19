@@ -1,17 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-import mqtt from "mqtt";
-
+import { io } from "socket.io-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import { Button } from "@/components/ui/button";
-
 import { useToast } from "@/hooks/use-toast";
-
 import { useAuth } from "@/hooks/use-auth";
-
 import {
   Dialog,
   DialogContent,
@@ -20,15 +14,10 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-
 import { Calendar } from "@/components/ui/calendar";
-
 import { Separator } from "@/components/ui/separator";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import { Badge } from "@/components/ui/badge";
-
 import {
   Car,
   CalendarDays,
@@ -45,7 +34,6 @@ import {
   LogOutIcon,
   PhoneCallIcon,
 } from "lucide-react";
-
 import {
   Select,
   SelectContent,
@@ -53,37 +41,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
 import Link from "next/link";
 
 interface Slot {
   _id: string;
-
   slotNumber: string;
-
   status: string;
-
   bookedBy?: {
     _id?: string;
-
     username?: string;
-
     vehicleNumber?: string;
-
     mobile?: string;
   };
-
   bookingStart?: string;
-
   bookingEnd?: string;
 }
 
@@ -100,45 +77,31 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchSlots();
     console.log(selectedSlot);
-    // Connect to the MQTT broker
-    const client = mqtt.connect(`mqtt://88dd76a106024c568b26de1aa2c0926c.s1.eu.hivemq.cloud:8883`, {
-      username: "mqtt",
-      password: "4hZ5HMa7kj%::J?",
+
+    // Connect to WebSocket server
+    const socket = io('http://localhost:5000');
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
     });
 
-    client.on("connect", () => {
-      console.log("Connected to MQTT broker");
-      client.subscribe("parking/sensors/+/status", (err) => {
-        if (!err) {
-          console.log("Subscribed to sensor status topic");
-        } else {
-          console.error("Subscription error:", err);
-        }
-      });
-
-      client.subscribe("parking/notifications", (err) => {
-        if (!err) {
-          console.log("Subscribed to notifications topic");
-        } else {
-          console.error("Subscription error:", err);
-        }
-      });
+    socket.on('parkingStatus', (parkingStatus) => {
+      console.log('Received parking status:', parkingStatus);
+      fetchSlots(); // Update slots when status changes
     });
 
-    client.on("message", (topic, message) => {
-      console.log(`Message received on topic ${topic}: ${message.toString()}`);
-      if (topic.match(/^parking\/sensors\/.*\/status$/)) {
-        fetchSlots(); // Fetch slots when a message is received
-      }
+    socket.on('triggerServo', (status) => {
+      console.log('Servo triggered:', status);
+      // Handle servo trigger if needed
     });
 
-    client.on("error", (error) => {
-      console.error("MQTT connection error:", error);
+    socket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
     });
 
     // Clean up on component unmount
     return () => {
-      client.end();
+      socket.disconnect();
     };
   }, []);
 
@@ -171,49 +134,39 @@ export default function DashboardPage() {
 
     try {
       const [hours, minutes] = startTime.split(":");
-
       const bookingStart = new Date(date);
-
       bookingStart.setHours(parseInt(hours), parseInt(minutes), 0);
-
       const bookingEnd = new Date(bookingStart);
-
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots/book`, {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-
-        body: JSON.stringify({
-          slotNumber: slotId,
-
-          bookingStart: bookingStart.toISOString(),
-
-          bookingEnd: bookingEnd.toISOString(),
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/slots/book`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            slotNumber: slotId,
+            bookingStart: bookingStart.toISOString(),
+            bookingEnd: bookingEnd.toISOString(),
+          }),
+        }
+      );
 
       const data = await res.json();
 
       if (data.status === "success") {
         toast({
           title: "Success",
-
           description: "Slot booked successfully",
         });
-
         fetchSlots();
       } else {
         toast({
           variant: "destructive",
-
           title: "Error",
-
           description: (
             <>
               {data.message}. Try{" "}
@@ -224,7 +177,6 @@ export default function DashboardPage() {
                   const slotToRelease = slots.find(
                     (slot) => slot.bookedBy?._id === user?._id
                   )?.slotNumber;
-
                   if (slotToRelease) {
                     releaseSlot(slotToRelease);
                   }
@@ -239,9 +191,7 @@ export default function DashboardPage() {
     } catch {
       toast({
         variant: "destructive",
-
         title: "Error",
-
         description: "Failed to book slot",
       });
     }
@@ -249,37 +199,33 @@ export default function DashboardPage() {
 
   const releaseSlot = async (slotId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots/release`, {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-
-        body: JSON.stringify({
-          slotNumber: slotId,
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/slots/release`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            slotNumber: slotId,
+          }),
+        }
+      );
 
       const data = await res.json();
 
       if (data.status === "success") {
         toast({
           title: "Success",
-
           description: "Slot released successfully",
         });
-
         fetchSlots();
       }
     } catch {
       toast({
         variant: "destructive",
-
         title: "Error",
-
         description: (
           <>
             Failed to release slot. Try{" "}
@@ -300,53 +246,34 @@ export default function DashboardPage() {
     switch (status) {
       case "available":
         return <Car className="h-16 w-16 text-green-500 animate-pulse" />;
-
       case "occupied":
         return <Bookmark className="h-16 w-16 text-blue-500 animate-bounce" />;
-
       case "parked":
         return (
           <div className="relative w-32 h-32 group perspective-1000">
             <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl shadow-lg transform transition-all duration-300 group-hover:shadow-2xl" />
-
-            {/* Parked Sign */}
-
             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
               <div className="bg-blue-600 text-white px-4 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
                 <ParkingSquare className="h-4 w-4" />
-
                 <span className="text-sm font-semibold">Parked</span>
               </div>
             </div>
-
-            {/* Car Container */}
-
             <div className="absolute inset-2 flex items-center justify-center">
               <div className="relative">
                 <Car className="h-20 w-20 text-blue-600 drop-shadow-lg transform transition-all duration-300 group-hover:scale-105" />
-
                 <div className="absolute -bottom-2 inset-x-0 h-4 bg-black/10 blur-sm rounded-full transform scale-75" />
               </div>
             </div>
-
-            {/* Parking Lines */}
-
             <div className="absolute bottom-3 inset-x-4">
               <div className="flex justify-between gap-2">
                 <div className="h-1 w-8 bg-yellow-400 rounded-full shadow-sm" />
-
                 <div className="h-1 w-8 bg-yellow-400 rounded-full shadow-sm" />
               </div>
             </div>
-
-            {/* Decorative Elements */}
-
             <div className="absolute inset-0 border-2 border-blue-200 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
             <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-slate-200/50 to-transparent rounded-b-xl" />
           </div>
         );
-
       default:
         return <Car className="h-16 w-16" />;
     }
@@ -358,12 +285,10 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
-
             <p className="text-muted-foreground mt-2">
               Manage your parking reservations and view available slots
             </p>
           </div>
-
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -376,7 +301,6 @@ export default function DashboardPage() {
                   Logout
                 </Button>
               </TooltipTrigger>
-
               <TooltipContent>
                 <p>Logout from Smart Parking System</p>
               </TooltipContent>
@@ -394,27 +318,20 @@ export default function DashboardPage() {
                 Your Profile
               </CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
                 <span className="text-muted-foreground">Username:</span>
-
                 <span className="font-medium">{user?.username}</span>
               </div>
-
               <div className="flex items-center space-x-2">
                 <span className="text-muted-foreground">Vehicle:</span>
-
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Car className="h-3 w-3" />
-
                   {user?.vehicleNumber}
                 </Badge>
               </div>
-
               <Alert>
                 <Info className="h-4 w-4" />
-
                 <AlertDescription>
                   Keep your vehicle information up to date for seamless parking
                   management
@@ -430,7 +347,6 @@ export default function DashboardPage() {
                 Current Booking
               </CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4">
               {slots.find(
                 (slot: { bookedBy?: { _id?: string }; slotNumber: string }) =>
@@ -439,37 +355,31 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <span className="text-muted-foreground">Slot Number:</span>
-
                     <Badge className="animate-pulse">
                       {
                         slots.find(
                           (slot: {
                             bookedBy?: { _id?: string };
-
                             slotNumber: string;
                           }) => slot.bookedBy?._id === user?._id
                         )?.slotNumber
                       }
                     </Badge>
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-
                     <span className="text-sm text-muted-foreground">
                       P
                       {
                         slots.find(
                           (slot: {
                             bookedBy?: { _id?: string };
-
                             slotNumber: string;
                           }) => slot.bookedBy?._id === user?._id
                         )?.slotNumber
                       }
                     </span>
                   </div>
-
                   <Button
                     variant="destructive"
                     className="w-full hover:bg-red-600 transition-colors"
@@ -477,11 +387,9 @@ export default function DashboardPage() {
                       const slotToRelease = slots.find(
                         (slot: {
                           bookedBy?: { _id?: string };
-
                           slotNumber: string;
                         }) => slot.bookedBy?._id === user?._id
                       )?.slotNumber;
-
                       if (slotToRelease) {
                         releaseSlot(slotToRelease);
                       }
@@ -494,11 +402,9 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center p-6 space-y-4">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-
                   <div className="text-muted-foreground">
                     No active bookings
                   </div>
-
                   <p className="text-sm text-muted-foreground">
                     Book a parking slot from the available slots below
                   </p>
@@ -514,7 +420,6 @@ export default function DashboardPage() {
               <Key className="h-8 w-8" />
               Available Parking Slots
             </h2>
-
             <Badge variant="outline" className="text-sm">
               {
                 slots.filter(
@@ -526,11 +431,12 @@ export default function DashboardPage() {
           </div>
 
           <ScrollArea className="h-[600px] rounded-lg border">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full p-12">
-                <RefreshCw className="h-12 w-12 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
+            {
+            // isLoading ? (
+            //   <div className="flex items-center justify-center h-full p-12">
+            //     <RefreshCw className="h-12 w-12 animate-spin text-muted-foreground" />
+            //   </div>
+            // ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                 {slots.map((slot: Slot) => (
                   <Card
@@ -547,12 +453,10 @@ export default function DashboardPage() {
                           <div className="p-2 rounded-lg bg-slate-50">
                             {getSlotIcon(slot.status)}
                           </div>
-
                           <div className="space-y-1">
                             <div className="text-xl font-bold">
                               Slot {slot.slotNumber}
                             </div>
-
                             <Badge
                               variant={
                                 slot.status === "available"
@@ -560,21 +464,22 @@ export default function DashboardPage() {
                                   : "secondary"
                               }
                               className={`
-
                                 ${
                                   slot.status === "available"
                                     ? "bg-green-500/10 text-green-700 hover:bg-green-500/20"
                                     : ""
                                 }
-
                                 ${
                                   slot.status === "occupied"
                                     ? "bg-blue-500/10 text-blue-700"
                                     : ""
                                 }
-
+                                ${
+                                  slot.status === "parked"
+                                    ? "bg-blue-500/10 text-blue-700"
+                                    : ""
+                                }
                                 font-medium
-
                               `}
                             >
                               {slot.status === "occupied"
@@ -591,7 +496,7 @@ export default function DashboardPage() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
-                              className="w-full bg-green-600 hover:bg-green-700 transition-colors"
+                              className="w-full  bg-green-600 hover:bg-green-700 transition-colors"
                               variant="default"
                               onClick={() => setSelectedSlot(slot)}
                             >
@@ -606,7 +511,6 @@ export default function DashboardPage() {
                                 <Car className="h-6 w-6" />
                                 Book Parking Slot {slot.slotNumber}
                               </DialogTitle>
-
                               <DialogDescription>
                                 Select your preferred date and time for parking
                               </DialogDescription>
@@ -624,7 +528,6 @@ export default function DashboardPage() {
                               <div className="space-y-4">
                                 <div className="flex items-center gap-4">
                                   <Clock className="h-5 w-5" />
-
                                   <Select
                                     value={startTime}
                                     onValueChange={setStartTime}
@@ -632,11 +535,9 @@ export default function DashboardPage() {
                                     <SelectTrigger>
                                       <SelectValue placeholder="Start Time" />
                                     </SelectTrigger>
-
                                     <SelectContent>
                                       {Array.from(
                                         { length: 24 },
-
                                         (_, i) =>
                                           `${i.toString().padStart(2, "0")}:00`
                                       ).map((time) => (
@@ -654,7 +555,6 @@ export default function DashboardPage() {
                                     <SelectTrigger>
                                       <SelectValue placeholder="Duration" />
                                     </SelectTrigger>
-
                                     <SelectContent>
                                       {[1, 2, 3, 4, 6, 8, 12, 24].map(
                                         (hours) => (
@@ -673,7 +573,6 @@ export default function DashboardPage() {
 
                                 <Alert className="bg-blue-50">
                                   <Info className="h-4 w-4 text-blue-600" />
-
                                   <AlertDescription>
                                     Booking will start from {startTime} for{" "}
                                     {duration} hour(s)
@@ -694,7 +593,7 @@ export default function DashboardPage() {
                         </Dialog>
                       )}
 
-                      {slot.status === "occupied" && slot.bookedBy && (
+                      {(slot.status === "occupied" || slot.status === "parked") && slot.bookedBy && (
                         <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
                           {slot.bookingStart && slot.bookingEnd && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -717,11 +616,11 @@ export default function DashboardPage() {
 
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-
                             <span className="text-sm text-muted-foreground">
-                              Booked by:
+                              {slot.status === "occupied"
+                                ? "Booked by:"
+                                : "Parked by:"}
                             </span>
-
                             <span className="font-medium">
                               {slot.bookedBy.username}
                             </span>
@@ -729,11 +628,9 @@ export default function DashboardPage() {
 
                           <div className="flex items-center space-x-2">
                             <Car className="h-4 w-4 text-muted-foreground" />
-
                             <span className="text-sm text-muted-foreground">
                               Vehicle:
                             </span>
-
                             <Badge variant="outline" className="bg-white">
                               {slot.bookedBy.vehicleNumber}
                             </Badge>
@@ -741,11 +638,9 @@ export default function DashboardPage() {
 
                           <div className="flex items-center space-x-2">
                             <PhoneCallIcon className="h-4 w-4 text-muted-foreground" />
-
                             <span className="text-sm text-muted-foreground">
                               Mobile:
                             </span>
-
                             <a
                               href={`tel:${slot.bookedBy.mobile}`}
                               className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
@@ -759,7 +654,7 @@ export default function DashboardPage() {
                   </Card>
                 ))}
               </div>
-            )}
+            }
           </ScrollArea>
         </div>
       </div>
