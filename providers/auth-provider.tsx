@@ -44,7 +44,9 @@ export default function AuthProvider({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Add CORS header
         },
+        credentials: "include", // Include credentials
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
@@ -74,8 +76,9 @@ export default function AuthProvider({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Add CORS header
         },
-
+        credentials: "include", // Include credentials
         body: JSON.stringify({
           username,
           password,

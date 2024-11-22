@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +48,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import { io } from "socket.io-client";
 
 interface Slot {
   _id: string;
@@ -70,36 +70,85 @@ export default function DashboardPage() {
   const [startTime, setStartTime] = useState("09:00");
   const [duration, setDuration] = useState("1");
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
   useEffect(() => {
     fetchSlots();
-    console.log(selectedSlot);
 
-    // Connect to WebSocket server
-    const socket = io('http://localhost:5000');
+    // Socket.IO Connection
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+      withCredentials: true
+    });
 
     socket.on('connect', () => {
-      console.log('Connected to WebSocket server');
+      setConnectionStatus('Connected');
+      toast({
+        title: "Connected",
+        description: "Successfully connected to parking system"
+      });
     });
 
-    socket.on('parkingStatus', (parkingStatus) => {
-      console.log('Received parking status:', parkingStatus);
-      fetchSlots(); // Update slots when status changes
+    socket.on('INITIAL_STATE', (data) => {
+      fetchSlots();
+      if (data.slots) {
+        setSlots(Object.values(data.slots));
+      }
     });
 
-    socket.on('triggerServo', (status) => {
-      console.log('Servo triggered:', status);
-      // Handle servo trigger if needed
+    socket.on('PARKING_UPDATE', (data) => {
+      fetchSlots();
+      if (data.slots) {
+        setSlots(Object.values(data.slots));
+      }
+    });
+
+    socket.on('PARKING_ERROR', (error) => {
+      fetchSlots();
+      toast({
+        variant: "destructive", 
+        title: "Parking Error",
+        description: error.message
+      });
+    });
+
+    socket.on('SENSOR_DATA', (data) => {
+      fetchSlots();
+      console.log('Received sensor data:', data);
+    });
+
+    socket.on('SERVO_STATUS', (data) => {
+      fetchSlots();
+      toast({
+        title: "Gate Status",
+        description: `Gate ${data.command}`
+      });
     });
 
     socket.on('disconnect', () => {
-      console.log('Disconnected from WebSocket server');
+      fetchSlots();
+      setConnectionStatus('Disconnected');
+      toast({
+        variant: "destructive",
+        title: "Disconnected",
+        description: "Lost connection to parking system"
+      });
     });
 
-    // Clean up on component unmount
+    socket.on('connect_error', (error) => {
+      fetchSlots();
+      setConnectionStatus('Connection Error');
+      console.error('Socket.IO Error:', error);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Failed to connect to parking system"
+      });
+    });
+
+    // Cleanup on component unmount
     return () => {
       socket.disconnect();
     };
@@ -220,8 +269,8 @@ export default function DashboardPage() {
           title: "Success",
           description: "Slot released successfully",
         });
-        fetchSlots();
       }
+      fetchSlots();
     } catch {
       toast({
         variant: "destructive",
@@ -288,6 +337,14 @@ export default function DashboardPage() {
             <p className="text-muted-foreground mt-2">
               Manage your parking reservations and view available slots
             </p>
+            <div className="mt-2">
+              <span 
+                className={`mr-2 px-3 py-1 rounded-full text-sm font-semibold 
+                ${connectionStatus === 'Connected' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}
+              >
+                {connectionStatus}
+              </span>
+            </div>
           </div>
           <TooltipProvider>
             <Tooltip>
@@ -431,12 +488,11 @@ export default function DashboardPage() {
           </div>
 
           <ScrollArea className="h-[600px] rounded-lg border">
-            {
-            // isLoading ? (
-            //   <div className="flex items-center justify-center h-full p-12">
-            //     <RefreshCw className="h-12 w-12 animate-spin text-muted-foreground" />
-            //   </div>
-            // ) : (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full p-12">
+                <RefreshCw className="h-12 w-12 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                 {slots.map((slot: Slot) => (
                   <Card
@@ -474,11 +530,6 @@ export default function DashboardPage() {
                                     ? "bg-blue-500/10 text-blue-700"
                                     : ""
                                 }
-                                ${
-                                  slot.status === "parked"
-                                    ? "bg-blue-500/10 text-blue-700"
-                                    : ""
-                                }
                                 font-medium
                               `}
                             >
@@ -496,7 +547,7 @@ export default function DashboardPage() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
-                              className="w-full  bg-green-600 hover:bg-green-700 transition-colors"
+                              className="w-full bg-green-600 hover:bg-green-700 transition-colors"
                               variant="default"
                               onClick={() => setSelectedSlot(slot)}
                             >
@@ -593,7 +644,7 @@ export default function DashboardPage() {
                         </Dialog>
                       )}
 
-                      {(slot.status === "occupied" || slot.status === "parked") && slot.bookedBy && (
+                      {slot.status === "occupied" && slot.bookedBy && (
                         <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
                           {slot.bookingStart && slot.bookingEnd && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -617,9 +668,7 @@ export default function DashboardPage() {
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">
-                              {slot.status === "occupied"
-                                ? "Booked by:"
-                                : "Parked by:"}
+                              Booked by:
                             </span>
                             <span className="font-medium">
                               {slot.bookedBy.username}
@@ -654,7 +703,7 @@ export default function DashboardPage() {
                   </Card>
                 ))}
               </div>
-            }
+            )}
           </ScrollArea>
         </div>
       </div>
