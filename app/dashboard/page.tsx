@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchSlots();
-
+console.log(selectedSlot)
     // Socket.IO Connection
     const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
       withCredentials: true
@@ -157,7 +157,7 @@ export default function DashboardPage() {
   const fetchSlots = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/slots`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -189,7 +189,7 @@ export default function DashboardPage() {
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/slots/book`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots/book`,
         {
           method: "POST",
           headers: {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
   const releaseSlot = async (slotId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/slots/release`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots/release`,
         {
           method: "POST",
           headers: {
