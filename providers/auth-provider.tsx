@@ -35,7 +35,8 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "https://iot-server.mukarramah.in";
       if (!apiUrl) {
         throw new Error("API URL is not configured");
       }
@@ -72,20 +73,25 @@ export default function AuthProvider({
     vehicleNumber: string
   ) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*", // Add CORS header
-        },
-        credentials: "include", // Include credentials
-        body: JSON.stringify({
-          username,
-          password,
-          mobile,
-          vehicleNumber,
-        }),
-      });
+      const res = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "https://iot-server.mukarramah.in"
+        }/api/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*", // Add CORS header
+          },
+          credentials: "include", // Include credentials
+          body: JSON.stringify({
+            username,
+            password,
+            mobile,
+            vehicleNumber,
+          }),
+        }
+      );
       const data = await res.json();
 
       if (data.status === "success") {
