@@ -79,7 +79,7 @@ export default function DashboardPage() {
     fetchSlots();
 console.log(selectedSlot)
     // Socket.IO Connection
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'https://iot-server.mukarramah.in', {
       withCredentials: true
     });
 
@@ -157,7 +157,7 @@ console.log(selectedSlot)
   const fetchSlots = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://iot-server.mukarramah.in'}/api/slots`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -189,7 +189,7 @@ console.log(selectedSlot)
       bookingEnd.setHours(bookingStart.getHours() + parseInt(duration));
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots/book`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://iot-server.mukarramah.in'}/api/slots/book`,
         {
           method: "POST",
           headers: {
@@ -249,7 +249,7 @@ console.log(selectedSlot)
   const releaseSlot = async (slotId: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/slots/release`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://iot-server.mukarramah.in'}/api/slots/release`,
         {
           method: "POST",
           headers: {
