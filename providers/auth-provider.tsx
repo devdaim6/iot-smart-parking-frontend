@@ -35,7 +35,7 @@ export default function AuthProvider({
 
   const login = async (username: string, password: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       if (!apiUrl) {
         throw new Error("API URL is not configured");
       }
@@ -44,7 +44,9 @@ export default function AuthProvider({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Add CORS header
         },
+        credentials: "include", // Include credentials
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
@@ -70,12 +72,13 @@ export default function AuthProvider({
     vehicleNumber: string
   ) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Add CORS header
         },
-
+        credentials: "include", // Include credentials
         body: JSON.stringify({
           username,
           password,
