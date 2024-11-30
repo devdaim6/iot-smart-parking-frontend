@@ -17,7 +17,7 @@ export const metadata = {
   authors: [
     { 
       name: 'Smart Parking System',
-      url: 'https://github.com/devdaim6' 
+      url: 'https://github.com/devdaim6/iot-smart-parking-frontend' 
     },
     {
       name: 'DevDaim',
